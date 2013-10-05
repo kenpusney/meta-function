@@ -60,8 +60,8 @@ def fib_7(n):
 lst = [1,1,2,3,5,8,13,21,34,55,89]
 sorted(lst) #; => [1,1,2,3,5,8,13,21,34,55,89]
 
-lst_1 = sorted(lst)
-lst_1.reverse()
+reversed(sorted(lst))
+#; => [89, 55, 34, 21, 13, 8, 5, 3, 2, 1, 1]
 
 def lst_comparator(o1,o2):
 	return o2-o1
@@ -99,4 +99,45 @@ class Pair:
 
 p = Pair(1,2)
 a = p.first()
+
+def fib_range(s,e):
+	lst = []
+	for i in range(s,e):
+		lst.append(fib(i))
+	return lst
+
+'''
+>>> lst_2 = fib_range(0,100000)
+'''
+
+class xfib_range:
+	def __init__(self,s,e):
+		self.start = s
+		self.end   = e
+	def __iter__(self):
+		return self
+	def next(self):
+		if self.start != self.end:
+			res = fib(self.start)
+			self.start += 1
+			return res
+		else:
+			raise StopIteration()
+
+def x2fib_range(s,e):
+	for i in xrange(s,e):
+		yield fib(i)
+
+
+
+
+
+
+
+
+
+
+
+
+
 

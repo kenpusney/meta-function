@@ -96,3 +96,63 @@ mp2.get_first() //; => 1
 mp2.set_first(3)
 mp2.get_first() //; => 2
 
+function xfib_range(a,e){
+	return function(){
+		if (a != e){
+			return fib(a++);
+		}else{
+			throw undefined;
+		}
+	};
+}
+
+rng = xfib_range(0,11);
+rng() //; => 1
+rng() //; => 1
+rng() //; => 2
+
+function yfib_range(a,e){
+	c = a
+	return function(fun){
+		var x = fun(a,e,c);
+		c = x[1];
+		return x[0];
+	}
+}
+
+function fib_forward(a,e,c){
+	if(c < e){
+		return [fib(c),c+1];
+	}else{
+		throw undefined;
+	}
+}
+
+function fib_backward(a,e,c){
+	if(c > a){
+		return [ fib(c-1),c-1];
+	}else{
+		throw undefined;
+	}
+}
+
+function fib_seek(i){
+	return function(a,e,c){
+		if(a + i < e){
+			return [ fib(a+i),c ];
+		}else{
+			throw undefined;
+		}
+	};
+}
+
+rng2 = yfib_range(1,500000);
+rng2(fib_forward); //; => 1
+rng2(fib_forward); //; => 2
+rng2(fib_forward); //; => 3
+rng2(fib_forward); //; => 5
+rng2(fib_backward); //; => 5
+rng2(fib_backward); //; => 3
+rng2(fib_seek(0)); //; => 1
+rng2(fib_seek(3)); //; => 5
+
