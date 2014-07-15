@@ -200,20 +200,39 @@ def drop(lst,n = 0):
         return drop(tail_of(lst), n-1)
     return lst
 
-# each
+def sum_list(lst):
+    if lst:
+        return head_of(lst) + sum_list(tail_of(lst))
+    return 0
+
+def prod_list(lst):
+    if lst:
+        return head_of(lst) * prod_list(tail_of(lst))
+    return 1
+
+def acc_list(lst,fn,default):
+    if lst:
+        return fn( head_of(lst),acc_list(tail_of(lst),fn,default) )
+    return default
+
+acc_list(make_list(1,2,3,4,5), lambda x,y: x+y, 0)  #; sums
+acc_list(make_list(1,2,3,4,5), lambda x,y: x*y, 1)  #; products
+acc_list(make_list(1,2,3,4,5), lambda x,y: x*x + y, 0) #;squares
+
+# each :: [a] -> (a -> ()) -> ()
 def each(lst,fn):
     if lst:
         fn(head_of(lst))
         return each(tail_of(lst),fn)
     return None
 
-# map
+# map :: [a] -> (a -> b) -> [b]
 def collect(lst,fun):
     if lst:
         return make_cons(fun(head_of(lst)),collect(tail_of(lst),fun))
     return None
 
-# filter
+# filter :: [a] -> (a -> Bool) -> [a]
 def select(lst,pred):
     if lst:
         if pred(head_of(lst)):
@@ -221,31 +240,27 @@ def select(lst,pred):
         return select(tail_of(lst),pred)
     return None
 
-# reduce
-def foldl(lst,fun,default):
+# reduce :: [a] -> (b -> a -> b) -> b -> b
+def fold(lst,fun,default):
     if lst:
-        return fun(foldl(tail_of(lst),fun,default), head_of(lst))
-    return default
-
-def foldr(lst,fun,default):
-    if lst:
-        return fun(head_of(lst), foldr(tail_of(lst),fun,default))
+        return fold(tail_of(lst), fun, fun(head_of(lst), default))
     return default
 
 def collect_over_fold(lst,fun):
-    return foldr(lst,lambda head,tail: make_cons(fun(head),tail),None)
+    return fold(lst,lambda head,tail: make_cons(fun(head),tail),None)
 
 def select_over_fold(lst,pred):
-    return foldr(lst, 
+    return fold(lst, 
             lambda head,tail: make_cons(head,tail) if pred(head) else tail,
             None)
 
 # sort
 def sort(lst,pred=lambda a,b: a > b):
     if lst and tail_of(lst):
-        return concat(append(head_of(lst), 
-                            sort(select(tail_of(lst), lambda e: pred(head_of(lst),e)), 
-                                pred)),
+        return concat(
+                append(head_of(lst), 
+                    sort(select(tail_of(lst), lambda e: pred(head_of(lst),e)), 
+                        pred)),
                     sort(select(tail_of(lst), lambda e: pred(e,head_of(lst))),
                         pred))
     return lst
@@ -253,12 +268,58 @@ def sort(lst,pred=lambda a,b: a > b):
 def out(e):
     print e
 
+# tree
+
+def make_node(a, left, right):
+    return lambda fn: fn(a, left, right)
+
+def empty_node(a):
+    return None
+
+def tree_left(t):
+    return t(lambda a,l,r: l) if t else None
+
+def tree_right(t):
+    return t(lambda a,l,r: r) if t else None
+
+def node_elem(t):
+    return t(lambda a,l,r: a) if t else None
+
+def ident(x):
+        return x
+
+# tuple
+
+def make_tuple(*args):
+    return lambda fn: fn(*args)
+
+def tup_size(tup):
+    return tup(lambda *args: len(args))
+
+def tup_head(tup):
+    return lambda fn: tup(lambda first,*rest: lambda fx: fx(first))(fn)
+
+def tup_tail(tup):
+    return lambda fn: tup(lambda first,*rest: lambda fx: fx(*rest))(fn)
+
+def tup_get(i):
+    if i:
+        return lambda tup: tup_get(i-1)(tup_tail(tup)) if tup_size(tup) > i else None
+    return lambda tup: tup_head(tup)
+
+tup_0 = tup_get(0)
+tup_1 = tup_get(1)
+tup_2 = tup_get(2)
+tup_3 = tup_get(3)
+tup_4 = tup_get(4)
+tup_5 = tup_get(5)
+
 ##; ** typed **
 
 # primitives to predicates
 (pint,pstr,plong,pfloat,pcomplex,pbool) = map(lambda t: 
                                 lambda v: type(value(v)) == t, 
-                           [int,str,long,float,complex,bool])
+                            [int,str,long,float,complex,bool])
 
 # primitive assertion
 primitive = lambda obj: type(typeof(obj)) == type
@@ -289,20 +350,18 @@ def eql(a,b):
     return typeof(a) == typeof(b) and value(a) == value(b)
 
 ## example types
-# natural => (int | long) & (: >= 0)
-nat = lambda v: (pint(v) or plong(v)) and v >= 0
-# real => int | long | float
-real = lambda v: (pint(v) or plong(v) or pfloat(v))
-# number => real | complex
-num = lambda v: (real(v) or pcomplex(v))
+# Natural => (int | long) & (: >= 0)
+Nat = lambda v: (pint(v) or plong(v)) and v >= 0
+# Real => int | long | float
+Real = lambda v: (pint(v) or plong(v) or pfloat(v))
 # list<T> => [ T,... ] | None
-t_list = lambda t: lambda v: v == None or foldl(v,
-            lambda p,e: p and t(e),True)
+List = lambda t: lambda v: v == None or fold(v,
+            lambda p,e: e and t(p),True)
 
 ## example functions
-def t_head_of(t):
-    return lambda lst: head_of(value(lst)) if t_list(t)(value(lst)) else None
+def headOf(t):
+    return lambda lst: head_of(value(lst)) if List(t)(value(lst)) else None
 ## example constructors
-N  = [new(nat,x) for x in range(1<<16)]  # N[x]  => (nat,x)
+N  = [new(Nat,x) for x in range(1<<16)]  # N[x]  => (Nat,x)
 CI = [new(pint,x) for x in range(1<<16)] # CI[x] => (pint,x)
 CL = [new(pint,x) for x in range(1<<16)] # CL[x] => (plong,x)
